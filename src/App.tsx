@@ -16,23 +16,40 @@ const usernames = import.meta.env.VITE_USERNAMES;
 
 function App() {
   const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const [username, setUsername] = useState<string>("");
+  const [address, setAddress] = useState<string>("");
+  const [avatar, setAvatar] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [twitter, setTwitter] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   const resover = async () => {
-    console.log(`usernames: ${usernames}`);
+    setLoading(true);
+    setUsername(usernames);
 
-    const provider = new ethers.JsonRpcProvider(providerUrl);
-    const resolver = await provider.getResolver(usernames);
-    // Refer to:
-    // https://github.com/Uniswap/interface/blob/5ab53568c0d4caf3ed0846172417e41f3b66f78c/packages/wallet/src/features/ens/api.ts
-    const address = await provider.resolveName(usernames);
-    const avatar = await provider.getAvatar(usernames);
-    const description = await resolver?.getText("description");
-    const twitter = await resolver?.getText("twitter");
+    try {
+      setError("");
+      const provider = new ethers.JsonRpcProvider(providerUrl);
+      const resolver = await provider.getResolver(usernames);
+      // Refer to:
+      // https://github.com/Uniswap/interface/blob/5ab53568c0d4caf3ed0846172417e41f3b66f78c/packages/wallet/src/features/ens/api.ts
+      const userAddress = await provider.resolveName(usernames);
+      const userAvatar = await provider.getAvatar(usernames);
+      const userDescription = await resolver?.getText("description");
+      const userTwitter = await resolver?.getText("com.twitter");
 
-    console.log(`address: ${address}`);
-    console.log(`avatar: ${avatar}`);
-    console.log(`description: ${description}`);
-    console.log(`twitter: ${twitter}`);
+      setAddress(userAddress ?? "");
+      setAvatar(userAvatar ?? "");
+      setDescription(userDescription ?? "");
+      setTwitter(userTwitter ?? "");
+    } catch (error) {
+      setError((error as any).message);
+      console.error("Error resolving ENS name:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,6 +75,30 @@ function App() {
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>
+      <div>
+        <span>username: </span>
+        <span>{username}</span>
+      </div>
+      <div>
+        <span>address: </span>
+        <span>{loading ? "loading..." : address}</span>
+      </div>
+      <div>
+        <span>avatar: </span>
+        <span>{loading ? "loading..." : avatar}</span>
+      </div>
+      <div>
+        <span>description: </span>
+        <span>{loading ? "loading..." : description}</span>
+      </div>
+      <div>
+        <span>twitter: </span>
+        <span>{loading ? "loading..." : twitter}</span>
+      </div>
+      <div>
+        <span>error: </span>
+        <span>{loading ? "loading..." : error}</span>
+      </div>
     </>
   );
 }
