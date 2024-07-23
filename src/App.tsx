@@ -18,14 +18,17 @@ function App() {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const [username, setUsername] = useState<string>("");
+  const [username, setUsername] = useState<string>(usernames);
+
   const [address, setAddress] = useState<string>("");
   const [avatar, setAvatar] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [twitter, setTwitter] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const resover = async () => {
+  const [nameBytes, setNameBytes] = useState<string>("");
+
+  const handleResove = async () => {
     setLoading(true);
     setUsername(usernames);
 
@@ -52,6 +55,11 @@ function App() {
     }
   };
 
+  const handleCalculateNameBytes = () => {
+    const name = usernames.split(".");
+    setNameBytes(JSON.stringify(calculateNameByte(name[1], name[0]), null, 2));
+  };
+
   return (
     <>
       <div>
@@ -67,7 +75,8 @@ function App() {
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
         </button>
-        <button onClick={resover}>resover</button>
+        <button onClick={handleResove}>Resolve Name</button>
+        <button onClick={handleCalculateNameBytes}>Calculate Name Byte</button>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
@@ -99,8 +108,52 @@ function App() {
         <span>error: </span>
         <span>{loading ? "loading..." : error}</span>
       </div>
+      <div>
+        <span>name bytes: </span>
+        <span>{nameBytes}</span>
+      </div>
     </>
   );
 }
+
+type NameBytes = {
+  name: string;
+  bytes: string;
+};
+
+const calculateNameByte = (
+  labelWallet: string = "uni",
+  labelUsername: string = "busjob"
+): { eht: NameBytes; wallet: NameBytes; username: NameBytes } => {
+  const defaultNameHash = "0x" + "00".repeat(32);
+  const labelEth = "eth";
+
+  const nodeDefault = defaultNameHash;
+  const idEth = ethers.id(labelEth);
+  const subnodeEth = ethers.solidityPackedKeccak256(
+    ["bytes"],
+    [ethers.solidityPacked(["bytes32", "bytes32"], [nodeDefault, idEth])]
+  );
+
+  const nodeEth = ethers.namehash(labelEth);
+  const idWallet = ethers.id(labelWallet);
+  const subnodeWallet = ethers.solidityPackedKeccak256(
+    ["bytes"],
+    [ethers.solidityPacked(["bytes32", "bytes32"], [nodeEth, idWallet])]
+  );
+
+  const nodeWallet = ethers.namehash(labelWallet);
+  const idUsername = ethers.id(labelUsername);
+  const subnodeUsername = ethers.solidityPackedKeccak256(
+    ["bytes"],
+    [ethers.solidityPacked(["bytes32", "bytes32"], [nodeWallet, idUsername])]
+  );
+
+  return {
+    eht: { name: labelEth, bytes: subnodeEth },
+    wallet: { name: labelWallet, bytes: subnodeWallet },
+    username: { name: labelUsername, bytes: subnodeUsername },
+  };
+};
 
 export default App;
