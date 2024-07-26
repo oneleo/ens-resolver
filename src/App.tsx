@@ -9,6 +9,7 @@ const providerOptions = {
   name: "mainnet",
   ensAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
 };
+
 const providerUrl = `https://eth-mainnet.g.alchemy.com/v2/${
   import.meta.env.VITE_ALCHEMY_TOKEN
 }`;
@@ -21,14 +22,24 @@ function App() {
   const [username, setUsername] = useState<string>(usernames);
 
   const [address, setAddress] = useState<string>("");
+  const [ethAddress, setEthAddress] = useState<string>("");
   const [avatar, setAvatar] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [twitter, setTwitter] = useState<string>("");
+  const [github, setGithub] = useState<string>("");
+  const [url, setUrl] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const [nameBytes, setNameBytes] = useState<string>("");
 
-  const handleResove = async () => {
+  const handleCalculateNameBytes = () => {
+    const name = usernames.split(".");
+    setNameBytes(
+      JSON.stringify(calculateNameByte(name[2], name[1], name[0]), null, 2)
+    );
+  };
+
+  const handleResolve = async () => {
     setLoading(true);
     setUsername(usernames);
 
@@ -40,24 +51,29 @@ function App() {
       // https://github.com/Uniswap/interface/blob/5ab53568c0d4caf3ed0846172417e41f3b66f78c/packages/wallet/src/features/ens/api.ts
       const userAddress = await provider.resolveName(usernames);
       const userAvatar = await provider.getAvatar(usernames);
+
+      const userEthAddress = await resolver?.getAddress(60); // ETH
+      // response not found during CCIP fetch: unknown error:
+      //   const userBtcAddress = await resolver?.getAddress(0); // BTC
+      //   const userSolAddress = await resolver?.getAddress(501); // SOL
       const userDescription = await resolver?.getText("description");
       const userTwitter = await resolver?.getText("com.twitter");
+      const userGithub = await resolver?.getText("com.github");
+      const userUrl = await resolver?.getText("url");
 
       setAddress(userAddress ?? "");
+      setEthAddress(userEthAddress ?? "");
       setAvatar(userAvatar ?? "");
       setDescription(userDescription ?? "");
       setTwitter(userTwitter ?? "");
+      setGithub(userGithub ?? "");
+      setUrl(userUrl ?? "");
     } catch (error) {
       setError((error as any).message);
       console.error("Error resolving ENS name:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCalculateNameBytes = () => {
-    const name = usernames.split(".");
-    setNameBytes(JSON.stringify(calculateNameByte(name[1], name[0]), null, 2));
   };
 
   return (
@@ -75,7 +91,7 @@ function App() {
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
         </button>
-        <button onClick={handleResove}>Resolve Name</button>
+        <button onClick={handleResolve}>Resolve Name</button>
         <button onClick={handleCalculateNameBytes}>Calculate Name Byte</button>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
@@ -93,6 +109,10 @@ function App() {
         <span>{loading ? "loading..." : address}</span>
       </div>
       <div>
+        <span>ETH address: </span>
+        <span>{loading ? "loading..." : ethAddress}</span>
+      </div>
+      <div>
         <span>avatar: </span>
         <span>{loading ? "loading..." : avatar}</span>
       </div>
@@ -103,6 +123,14 @@ function App() {
       <div>
         <span>twitter: </span>
         <span>{loading ? "loading..." : twitter}</span>
+      </div>
+      <div>
+        <span>github: </span>
+        <span>{loading ? "loading..." : github}</span>
+      </div>
+      <div>
+        <span>url: </span>
+        <span>{loading ? "loading..." : url}</span>
       </div>
       <div>
         <span>error: </span>
@@ -122,20 +150,20 @@ type NameBytes = {
 };
 
 const calculateNameByte = (
+  labelMain: string = "eth",
   labelWallet: string = "uni",
   labelUsername: string = "busjob"
 ): { eht: NameBytes; wallet: NameBytes; username: NameBytes } => {
   const defaultNameHash = "0x" + "00".repeat(32);
-  const labelEth = "eth";
 
   const nodeDefault = defaultNameHash;
-  const idEth = ethers.id(labelEth);
+  const idMain = ethers.id(labelMain);
   const subnodeEth = ethers.solidityPackedKeccak256(
     ["bytes"],
-    [ethers.solidityPacked(["bytes32", "bytes32"], [nodeDefault, idEth])]
+    [ethers.solidityPacked(["bytes32", "bytes32"], [nodeDefault, idMain])]
   );
 
-  const nodeEth = ethers.namehash(labelEth);
+  const nodeEth = ethers.namehash(labelMain);
   const idWallet = ethers.id(labelWallet);
   const subnodeWallet = ethers.solidityPackedKeccak256(
     ["bytes"],
@@ -150,7 +178,7 @@ const calculateNameByte = (
   );
 
   return {
-    eht: { name: labelEth, bytes: subnodeEth },
+    eht: { name: labelMain, bytes: subnodeEth },
     wallet: { name: labelWallet, bytes: subnodeWallet },
     username: { name: labelUsername, bytes: subnodeUsername },
   };
