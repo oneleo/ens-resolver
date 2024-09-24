@@ -4,11 +4,11 @@ import viteLogo from "/vite.svg";
 import * as ethers from "ethers";
 import "./App.css";
 
-const providerOptions = {
-  chainId: 1,
-  name: "mainnet",
-  ensAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-};
+// const providerOptions = {
+//   chainId: 1,
+//   name: "mainnet",
+//   ensAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+// };
 
 const providerUrl = `https://eth-mainnet.g.alchemy.com/v2/${
   import.meta.env.VITE_ALCHEMY_TOKEN
@@ -22,7 +22,9 @@ function App() {
   const [username, setUsername] = useState<string>(usernames);
 
   const [address, setAddress] = useState<string>("");
+  const [btcAddress, setBtcAddress] = useState<string>("");
   const [ethAddress, setEthAddress] = useState<string>("");
+  const [solAddress, setSolAddress] = useState<string>("");
   const [avatar, setAvatar] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [twitter, setTwitter] = useState<string>("");
@@ -54,14 +56,19 @@ function App() {
 
       const userEthAddress = await resolver?.getAddress(60); // ETH
       // response not found during CCIP fetch: unknown error:
-      //   const userBtcAddress = await resolver?.getAddress(0); // BTC
-      //   const userSolAddress = await resolver?.getAddress(501); // SOL
+      const userBtcAddress = await resolver?.getAddress(0); // BTC
+      const userSolAddress = await resolver?.getAddress(501); // SOL
       const userDescription = await resolver?.getText("description");
       const userTwitter = await resolver?.getText("com.twitter");
       const userGithub = await resolver?.getText("com.github");
       const userUrl = await resolver?.getText("url");
 
+      const names = await provider.lookupAddress(userEthAddress!);
+      console.log(`[ttt] names: ${names}`);
+
       setAddress(userAddress ?? "");
+      setBtcAddress(userBtcAddress ?? "");
+      setSolAddress(userSolAddress ?? "");
       setEthAddress(userEthAddress ?? "");
       setAvatar(userAvatar ?? "");
       setDescription(userDescription ?? "");
@@ -109,8 +116,16 @@ function App() {
         <span>{loading ? "loading..." : address}</span>
       </div>
       <div>
+        <span>BTC address: </span>
+        <span>{loading ? "loading..." : btcAddress}</span>
+      </div>
+      <div>
         <span>ETH address: </span>
         <span>{loading ? "loading..." : ethAddress}</span>
+      </div>
+      <div>
+        <span>SOL address: </span>
+        <span>{loading ? "loading..." : solAddress}</span>
       </div>
       <div>
         <span>avatar: </span>
@@ -153,11 +168,12 @@ const calculateNameByte = (
   labelMain: string = "eth",
   labelWallet: string = "uni",
   labelUsername: string = "busjob"
-): { eht: NameBytes; wallet: NameBytes; username: NameBytes } => {
+): { eth: NameBytes; wallet: NameBytes; username: NameBytes } => {
   const defaultNameHash = "0x" + "00".repeat(32);
 
   const nodeDefault = defaultNameHash;
   const idMain = ethers.id(labelMain);
+  console.log(`[ttt] idMain: ${idMain}`);
   const subnodeEth = ethers.solidityPackedKeccak256(
     ["bytes"],
     [ethers.solidityPacked(["bytes32", "bytes32"], [nodeDefault, idMain])]
@@ -178,7 +194,7 @@ const calculateNameByte = (
   );
 
   return {
-    eht: { name: labelMain, bytes: subnodeEth },
+    eth: { name: labelMain, bytes: subnodeEth },
     wallet: { name: labelWallet, bytes: subnodeWallet },
     username: { name: labelUsername, bytes: subnodeUsername },
   };
